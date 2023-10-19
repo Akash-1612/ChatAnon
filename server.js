@@ -13,7 +13,7 @@ const io = socketio(server);
 
 app.use(express.static(path.join(__dirname, 'host')));
 
-const chatAnon = 'ChatAnon Greetings.';
+const teamWork = 'TeamWork Greetings.';
 
 //Runs when user connects.
 io.on('connection', socket => {
@@ -23,11 +23,11 @@ io.on('connection', socket => {
         socket.join(user.room);
 
     //Greetings for new user.
-    socket.emit('message', formatMessage(chatAnon, 'Welcome.'));
+    socket.emit('message', formatMessage(teamWork, 'Welcome.'));
 
     //Message to display when user connects.
     socket.broadcast.to(user.room).emit('message', 
-    formatMessage(chatAnon, `${user.username} has joined the chat.`));
+    formatMessage(teamWork, `${user.username} has joined the chat.`));
 
     //Send users and room info.
     io.to(user.room).emit('roomUsers', {
@@ -51,7 +51,7 @@ io.on('connection', socket => {
         const user = userLeave(socket.id);
 
         if(user) {
-            io.to(user.room).emit('message', formatMessage(chatAnon, `${user.username} has left the chat.`));
+            io.to(user.room).emit('message', formatMessage(teamWork, `${user.username} has left the chat.`));
 
             io.to(user.room).emit('roomUsers', {
                 room: user.room,
@@ -61,6 +61,26 @@ io.on('connection', socket => {
     });
 });
 
+let tasks = [];
+
+// Handle a client creating a new task
+socket.on('createTask', ({ text, status }) => {
+  tasks.push({ text, status });
+  io.emit('createTask', { text, status });
+});
+
+// Handle a client moving a task
+socket.on('moveTask', ({ text, oldStatus, newStatus }) => {
+  const task = tasks.find(task => task.text === text && task.status === oldStatus);
+  task.status = newStatus;
+  io.emit('moveTask', { text, oldStatus, newStatus });
+});
+
+// Handle a client deleting a task
+socket.on('deleteTask', ({ text, status }) => {
+  tasks = tasks.filter(task => !(task.text === text && task.status === status));
+  io.emit('deleteTask', { text, status });
+});
 
 const PORT = process.env.PORT || 3001;
 
